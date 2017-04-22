@@ -56,6 +56,9 @@ import requests
 import pycurl
 _curl_pool = defaultdict(pycurl.Curl)
 
+from requests_futures.sessions import FuturesSession
+_session = FuturesSession(max_workers=64)
+
 from gbdxtools.ipe.vrt import get_cached_vrt, put_cached_vrt, generate_vrt_template
 from gbdxtools.ipe.util import calc_toa_gain_offset, timeit
 from gbdxtools.ipe.graph import VIRTUAL_IPE_URL, register_ipe_graph, get_ipe_metadata, get_ipe_graph
@@ -132,6 +135,8 @@ class IpeImage(DaskImage):
 
     def __init__(self, ipe_graph, gid, node="toa_reflectance", **kwargs):
         self.interface = Auth()
+        self.gbdx_connection = _session
+        self.gbdx_connection.headers.update({"Authorization": "Bearer {}".format(self.interface.gbdx_connection.access_token)})
         self._gid = gid
         self._node_id = node
         self._dtype = kwargs.get("dtype", "float32")
