@@ -10,6 +10,7 @@ from collections import defaultdict
 import os
 import json
 import uuid
+import time
 
 from shapely.wkt import loads
 from shapely.geometry import box, shape
@@ -22,6 +23,8 @@ from gbdxtools.vectors import Vectors
 from gbdxtools.ipe.interface import Ipe
 ipe = Ipe()
 
+from gbdxtools.images.ipe_image import _session
+
 band_types = {
   'MS': 'WORLDVIEW_8_BAND',
   'Panchromatic': 'PAN',
@@ -30,18 +33,21 @@ band_types = {
 }
 
 class CatalogImage(IpeImage):
-    """ 
-      Catalog Image Class 
+    """
+      Catalog Image Class
       Collects metadata on all image parts and groups pan and ms bands from idaho
       Inherits from IpeImage and represents a mosiac data set of the full catalog strip
     """
     _properties = None
     _metadata = None
 
-    def __init__(self, cat_id, band_type="MS", node="toa_reflectance", **kwargs):
+    def __init__(self, cat_id, band_type="MS", node="toa_reflectance", cache={}, **kwargs):
         self.interface = Auth()
+        self.gbdx_connection = _session
+        self.gbdx_connection.headers.update({"Authorization": "Bearer {}".format(self.interface.gbdx_connection.access_token)})
         self.vectors = Vectors()
         self._gid = cat_id
+        self.cache = cache
         self._band_type = band_type
         self._pansharpen = kwargs.get('pansharpen', False)
         self._acomp = kwargs.get('acomp', False)
@@ -63,7 +69,7 @@ class CatalogImage(IpeImage):
     def _query_vectors(self, query, aoi=None):
         if aoi is None:
             aoi = "POLYGON((-180.0 90.0,180.0 90.0,180.0 -90.0,-180.0 -90.0,-180.0 90.0))"
-        try: 
+        try:
             return self.vectors.query(aoi, query=query)
         except:
             raise Exception('Unable to query for image properties, the service may be currently down.')
@@ -74,28 +80,33 @@ class CatalogImage(IpeImage):
             query = 'item_type:DigitalGlobeAcquisition AND attributes.catalogID:{}'.format(self._gid)
             self._properties = self._query_vectors(query)
         return self._properties
-            
+
     @property
     def metadata(self):
         if self._metadata is None:
             meta = {}
             query = 'item_type:IDAHOImage AND attributes.catalogID:{}'.format(self._gid)
-            results = self._query_vectors(query)
+            try:
+                results = self.cache[self._gid.lower()]
+            except KeyError:
+                results = self._query_vectors(query)
+                self.cache[self._gid.lower()] = results
             grouped = defaultdict(list)
             # vector services returns inconsistent orders, sort here to ensure order
             for idaho in sorted(results, key=lambda x: x['properties']['id']):
                 vid = idaho['properties']['attributes']['vendorDatasetIdentifier']
                 grouped[vid].append(idaho)
-    
+
             meta['parts'] = []
             for key, parts in grouped.items():
                 part = {}
                 for p in parts:
                     attrs = p['properties']['attributes']
-                    part[attrs['colorInterpretation']] = {'properties': attrs, 'geometry': p['geometry']}
+                    part[attrs['colorInterpretation']] = {'properties': attrs, 'geometry': shape(p['geometry'])}
                 meta['parts'].append(part)
+
             self._metadata = meta
-        return self._metadata
+        return meta
 
 
     def aoi(self, **kwargs):
@@ -116,18 +127,19 @@ class CatalogImage(IpeImage):
         ids = []
         if self._node_id == 'pansharpened' and self._pansharpen:
             return self._pansharpen_graph()
-        else: 
+        else:
             for part in self.metadata['parts']:
                 for k, p in part.items():
                     if k == band_types[self._band_type]:
                         _id = p['properties']['idahoImageId']
                         graph[_id] = ipe.Orthorectify(ipe.IdahoRead(bucketName="idaho-images", imageId=_id, objectStore="S3"), **ortho_params(self._proj))
-                       
+
             return self._mosaic(graph)
 
     def _pansharpen_graph(self):
         pan_graph = {}
         ms_graph = {}
+
         for part in self.metadata['parts']:
             for k, p in part.items():
                 _id = p['properties']['idahoImageId']
@@ -145,7 +157,7 @@ class CatalogImage(IpeImage):
     def _mosaic(self, graph, suffix=''):
         mosaic = ipe.GeospatialMosaic(*graph.values())
         idaho_id = list(graph.keys())[0]
-        meta = requests.get('http://idaho.timbr.io/{}.json'.format(idaho_id)).json()
+        meta = self.gbdx_connection.get('http://idaho.timbr.io/{}.json'.format(idaho_id)).result().json()
         gains_offsets = calc_toa_gain_offset(meta['properties'])
         radiance_scales, reflectance_scales, radiance_offsets = zip(*gains_offsets)
         radiance = ipe.AddConst(ipe.MultiplyConst(ipe.Format(mosaic, dataType="4"), constants=radiance_scales), constants=radiance_offsets)
