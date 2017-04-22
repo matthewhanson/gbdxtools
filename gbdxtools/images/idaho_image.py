@@ -5,13 +5,18 @@ from gbdxtools.ipe.util import calc_toa_gain_offset, ortho_params
 from gbdxtools.ipe.interface import Ipe
 ipe = Ipe()
 
+from gbdxtools.images.ipe_image import _session
+
+
 class IdahoImage(IpeImage):
     """
       Dask based access to ipe based images (Idaho).
     """
     _idaho_md = None
-  
+
     def __init__(self, idaho_id, node="toa_reflectance", **kwargs):
+        self.gbdx_connection = _session
+        self.gbdx_connection.headers.update({"Authorization": "Bearer {}".format(self.interface.gbdx_connection.access_token)})
         self._gid = idaho_id
         self._level = 0
         if 'proj' in kwargs:
@@ -27,7 +32,7 @@ class IdahoImage(IpeImage):
     @property
     def idaho_md(self):
         if self._idaho_md is None:
-            self._idaho_md = requests.get('http://idaho.timbr.io/{}.json'.format(self._gid)).json()
+            self._idaho_md = self.gbdx_connection.get('http://idaho.timbr.io/{}.json'.format(self._gid)).result().json()
         return self._idaho_md
 
     def _init_graphs(self):
