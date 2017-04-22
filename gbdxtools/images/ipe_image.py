@@ -163,9 +163,9 @@ class IpeImage(DaskImage):
             graph = self.ipe.graph()
             try:
                 #print('GET', graph['id'])
-                self._ipe_id = get_ipe_graph(self.interface.gbdx_connection, graph['id'])
+                self._ipe_id = get_ipe_graph(self.gbdx_connection, graph['id'])
             except NotFound:
-                self._ipe_id = register_ipe_graph(self.interface.gbdx_connection, graph)
+                self._ipe_id = register_ipe_graph(self.gbdx_connection, graph)
                 #print('NOPE', self._ipe_id)
         return self._ipe_id
 
@@ -176,7 +176,7 @@ class IpeImage(DaskImage):
     @property
     def ipe_metadata(self):
         if self._ipe_metadata is None:
-            self._ipe_metadata = get_ipe_metadata(self.interface.gbdx_connection, self.ipe_id, self.ipe_node_id)
+            self._ipe_metadata = get_ipe_metadata(self.gbdx_connection, self.ipe_id, self.ipe_node_id)
         return self._ipe_metadata
 
     @property
