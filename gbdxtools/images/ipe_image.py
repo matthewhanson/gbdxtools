@@ -183,7 +183,7 @@ class IpeImage(DaskImage):
     def ipe_id(self):
         if self._ipe_id is None:
             graph = self.ipe.graph()
-            self._ipe_id = register_ipe_graph(self.interface.gbdx_connection, graph)
+            self._ipe_id = register_ipe_graph(self.gbdx_connection, graph)
         return self._ipe_id
 
     @property
@@ -201,7 +201,7 @@ class IpeImage(DaskImage):
         if self._retries >= 3:
             raise MaxTries('Exceeded max number of requests for metadata.')
         try: 
-            meta = get_ipe_metadata(self.interface.gbdx_connection, self.ipe_id, self.ipe_node_id)
+            meta = get_ipe_metadata(self.gbdx_connection, self.ipe_id, self.ipe_node_id)
             return meta
         except BadRequest as err:
             self._retries += 1
