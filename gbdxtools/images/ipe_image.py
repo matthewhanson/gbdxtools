@@ -47,7 +47,11 @@ try:
     from matplotlib import pyplot as plt
     has_pyplot = True
 except:
+<<<<<<< HEAD
     has_pyplot = False
+=======
+  has_pyplot = False
+>>>>>>> using rasterio standard aoi to slice routines rather than custom ones
 
 import dask
 import dask.array as da
@@ -235,9 +239,8 @@ class IpeImage(DaskImage):
         xform = Affine.from_gdal(*[tfm["translateX"], tfm["scaleX"], tfm["shearX"], tfm["translateY"], tfm["shearY"], tfm["scaleY"]])
         args = list(bounds) + [xform]
         roi = rasterio.windows.from_bounds(*args, boundless=True)
-        y_start, y_stop = max(0, roi.row_off), roi.row_off + roi.num_rows
-        x_start, x_stop = max(0, roi.col_off), roi.col_off + roi.num_cols
-        aoi = self[:, y_start:y_stop, x_start:x_stop]
+        row_slice, col_slice = roi.toslices()
+        aoi = self[:, row_slice, col_slice]
         return {
             "shape": aoi.shape,
             "dtype": kwargs.get("dtype", aoi.dtype),
