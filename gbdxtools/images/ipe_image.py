@@ -31,8 +31,6 @@ try:
 except NameError:
     xrange = range
 
-import requests
-
 from shapely.geometry import box, shape
 from shapely.wkt import loads
 import rasterio
@@ -47,11 +45,7 @@ try:
     from matplotlib import pyplot as plt
     has_pyplot = True
 except:
-<<<<<<< HEAD
     has_pyplot = False
-=======
-  has_pyplot = False
->>>>>>> using rasterio standard aoi to slice routines rather than custom ones
 
 import dask
 import dask.array as da
@@ -67,7 +61,7 @@ threaded_get = partial(dask.threaded.get, num_workers=num_workers)
 import pycurl
 _curl_pool = defaultdict(pycurl.Curl)
 
-import requests
+from requests_futures.sessions import FuturesSession
 
 from gbdxtools.ipe.vrt import get_cached_vrt, put_cached_vrt, generate_vrt_template
 from gbdxtools.ipe.util import calc_toa_gain_offset 
@@ -163,6 +157,8 @@ class IpeImage(DaskImage):
 
     def __init__(self, ipe_graph, gid, node="toa_reflectance", **kwargs):
         self.interface = Auth()
+        self.gbdx_connection = _session
+        self.gbdx_connection.headers.update({"Authorization": "Bearer {}".format(self.interface.gbdx_connection.access_token)})
         self._gid = gid
         self._node_id = node
         self._dtype = kwargs.get("dtype", "float32")
