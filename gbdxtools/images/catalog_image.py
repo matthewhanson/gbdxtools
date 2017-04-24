@@ -137,22 +137,36 @@ class CatalogImage(IpeImage):
             return self._mosaic(graph)
 
     def _pansharpen_graph(self):
-        pan_graph = {}
-        ms_graph = {}
+        pan_graphs = {}
+        ms_graphs = {}
 
         for part in self.metadata['parts']:
             for k, p in part.items():
+                vendor_id = p['properties']['vendorDatasetIdentifier']
                 _id = p['properties']['idahoImageId']
+                meta = self.gbdx_connection.get('http://idaho.timbr.io/{}.json'.format(_id)).result().json()
+                gains_offsets = calc_toa_gain_offset(meta['properties'])
+                radiance_scales, reflectance_scales, radiance_offsets = zip(*gains_offsets)
                 if k == 'PAN':
-                    pan_graph[_id] = ipe.Orthorectify(ipe.IdahoRead(bucketName="idaho-images", imageId=_id, objectStore="S3"), **ortho_params(self._proj))
+                    pan_graph = ipe.Orthorectify(ipe.IdahoRead(bucketName="idaho-images", imageId=_id, objectStore="S3"), **ortho_params(self._proj))
+                    pan_graph = ipe.MultiplyConst(ipe.AddConst(ipe.MultiplyConst(ipe.Format(pan_graph, dataType="4"),
+                                                                                 constants=radiance_scales),
+                                                               constants=radiance_offsets),
+                                                  constants=reflectance_scales)
+                    pan_graphs[vendor_id] = ipe.Format(ipe.MultiplyConst(pan_graph, constants=json.dumps([1000])), dataType="1")
                 else:
-                    ms_graph[_id] = ipe.Orthorectify(ipe.IdahoRead(bucketName="idaho-images", imageId=_id, objectStore="S3"), **ortho_params(self._proj))
+                    ms_graph = ipe.Orthorectify(ipe.IdahoRead(bucketName="idaho-images", imageId=_id, objectStore="S3"), **ortho_params(self._proj))
+                    ms_graph = ipe.MultiplyConst(ipe.AddConst(ipe.MultiplyConst(ipe.Format(ms_graph, dataType="4"),
+                                                                                constants=radiance_scales),
+                                                              constants=radiance_offsets),
+                                                 constants=reflectance_scales)
+                    ms_graphs[vendor_id] = ipe.Format(ipe.MultiplyConst(ms_graph, constants=json.dumps([1000])), dataType="1")
 
-        pan_mosaic = self._mosaic(pan_graph, suffix='-pan')
-        pan = ipe.Format(ipe.MultiplyConst(pan_mosaic['toa_reflectance-pan'], constants=json.dumps([1000])), dataType="1")
-        ms_mosaic = self._mosaic(ms_graph, suffix='-ms')
-        ms = ipe.Format(ipe.MultiplyConst(ms_mosaic['toa_reflectance-ms'], constants=json.dumps([1000]*8)), dataType="1")
-        return {'ms_mosaic': ms_mosaic, 'pan_mosiac': pan_mosaic, 'pansharpened': ipe.LocallyProjectivePanSharpen(ms, pan)}
+
+        pansharpened_graphs = [ipe.LocallyProjectivePanSharpen(ms_graphs[_id], pan_graphs[_id]) for _id in pan_graphs]
+        return {'ms_mosaic': ipe.GeospatialMosaic(*ms_graphs.values()),
+                'pan_mosiac': ipe.GeospatialMosaic(*pan_graphs.values()),
+                'pansharpened': ipe.GeospatialMosaic(*pansharpened_graphs)}
 
     def _mosaic(self, graph, suffix=''):
         mosaic = ipe.GeospatialMosaic(*graph.values())
