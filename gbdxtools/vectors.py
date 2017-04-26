@@ -18,6 +18,7 @@ from shapely.ops import cascaded_union
 from shapely.geometry import shape, box
 
 from gbdxtools.auth import Auth
+from gbdxtools import _session
 
 
 class Vectors(object):
@@ -31,7 +32,7 @@ class Vectors(object):
         '''
         interface = Auth(**kwargs)
         self.gbdx_connection = _session
-        self.gbdx_connection.headers.update({"Authorization": "Bearer {}".format(self.interface.gbdx_connection.access_token)})
+        self.gbdx_connection.headers.update({"Authorization": "Bearer {}".format(interface.gbdx_connection.access_token)})
 
         self.logger = interface.logger
         self.query_url = 'https://vector.geobigdata.io/insight-vector/api/vectors/query/paging'
