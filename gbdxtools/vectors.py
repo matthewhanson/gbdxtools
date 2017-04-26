@@ -30,7 +30,9 @@ class Vectors(object):
             An instance of the Vectors interface class.
         '''
         interface = Auth(**kwargs)
-        self.gbdx_connection = interface.gbdx_connection
+        self.gbdx_connection = _session
+        self.gbdx_connection.headers.update({"Authorization": "Bearer {}".format(self.interface.gbdx_connection.access_token)})
+
         self.logger = interface.logger
         self.query_url = 'https://vector.geobigdata.io/insight-vector/api/vectors/query/paging'
         self.query_index_url = 'https://vector.geobigdata.io/insight-vector/api/index/query/%s/paging'
@@ -84,7 +86,7 @@ class Vectors(object):
             if not 'ingest_source' in list(vector['properties'].keys()):
                 raise Exception('Vector does not contain "ingest_source".')
 
-        r = self.gbdx_connection.post(self.create_url, data=json.dumps(vectors))
+        r = self.gbdx_connection.post(self.create_url, data=json.dumps(vectors)).result()
         r.raise_for_status()
         return r.json()
 
@@ -129,7 +131,7 @@ class Vectors(object):
         '''
 
         url = self.get_url % index
-        r = self.gbdx_connection.get(url + ID)
+        r = self.gbdx_connection.get(url + ID).result()
         r.raise_for_status()
         return r.json()
 
@@ -147,7 +149,7 @@ class Vectors(object):
 
         Returns:
             List of vector results
-    
+
         '''
 
         return list(self.query_iteratively(searchAreaWkt, query, count, ttl, index))
@@ -166,7 +168,7 @@ class Vectors(object):
 
         Returns:
             generator of vector results
-    
+
         '''
 
         search_area_polygon = geometry.from_wkt(searchAreaWkt)
@@ -184,7 +186,7 @@ class Vectors(object):
 
         # initialize paging request
         url = self.query_index_url % index if index else self.query_url
-        r = self.gbdx_connection.get(url, params=params)
+        r = self.gbdx_connection.get(url, params=params).result()
         r.raise_for_status()
         page = r.json()
         paging_id = page['next_paging_id']
@@ -203,7 +205,7 @@ class Vectors(object):
               "ttl": ttl
           }
 
-          r = self.gbdx_connection.post(self.page_url, headers=headers, data=data)
+          r = self.gbdx_connection.post(self.page_url, headers=headers, data=data).result()
           r.raise_for_status()
           page = r.json()
           paging_id = page['next_paging_id']
