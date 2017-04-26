@@ -61,7 +61,7 @@ threaded_get = partial(dask.threaded.get, num_workers=num_workers)
 import pycurl
 _curl_pool = defaultdict(pycurl.Curl)
 
-from requests_futures.sessions import FuturesSession
+from gbdxtools import _session
 
 from gbdxtools.ipe.vrt import get_cached_vrt, put_cached_vrt, generate_vrt_template
 from gbdxtools.ipe.util import calc_toa_gain_offset 

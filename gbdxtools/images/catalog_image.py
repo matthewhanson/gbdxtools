@@ -23,7 +23,7 @@ from gbdxtools.vectors import Vectors
 from gbdxtools.ipe.interface import Ipe
 ipe = Ipe()
 
-from gbdxtools.images.ipe_image import _session
+from gbdxtools import _session
 
 band_types = {
   'MS': 'WORLDVIEW_8_BAND',
