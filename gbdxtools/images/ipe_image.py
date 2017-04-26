@@ -56,8 +56,7 @@ import requests
 import pycurl
 _curl_pool = defaultdict(pycurl.Curl)
 
-from requests_futures.sessions import FuturesSession
-_session = FuturesSession(max_workers=64)
+from gbdxtools import _session
 
 from gbdxtools.ipe.vrt import get_cached_vrt, put_cached_vrt, generate_vrt_template
 from gbdxtools.ipe.util import calc_toa_gain_offset, timeit

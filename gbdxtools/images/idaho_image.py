@@ -5,7 +5,7 @@ from gbdxtools.ipe.util import calc_toa_gain_offset, ortho_params
 from gbdxtools.ipe.interface import Ipe
 ipe = Ipe()
 
-from gbdxtools.images.ipe_image import _session
+from gbdxtools import _session
 
 
 class IdahoImage(IpeImage):
