@@ -170,6 +170,7 @@ class IpeImage(DaskImage):
         self._tile_size = kwargs.get("tile_size", 256)
         self._cfg = self._config_dask()
         super(IpeImage, self).__init__(**self._cfg)
+        self.aoi = None
         bounds = self._parse_geoms(**kwargs)
         if bounds is not None:
             _cfg = self._aoi_config(bounds)
@@ -295,13 +296,12 @@ class IpeImage(DaskImage):
         geojson = kwargs.get('geojson', None)
         bounds = None
         if bbox is not None:
-            bounds = bbox
+            self.aoi = box(*bounds)
         elif wkt is not None:
-            bounds = loads(wkt).bounds
+            self.aoi = loads(wkt)
         elif geojson is not None:
-            bounds = shape(geojson).bounds
-        return self._project_bounds(bounds)
-
+            self.aoi = shape(geojson)
+        return self._project_bounds(self.aoi.bounds)
 
     def _project_bounds(self, bounds):
         if bounds is None:
