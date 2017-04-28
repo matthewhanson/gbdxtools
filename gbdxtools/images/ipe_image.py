@@ -137,6 +137,10 @@ class DaskImage(da.Array):
 
         if aoi is not None:
             assert isinstance(aoi, (Polygon, MultiPolygon))
+            # NOTE: this assumes that the aoi bounds and the image bounds are the same
+            # which is true when that is how the image was defined to begin with.  This
+            # should get the bounds from the image itself, otherwise we wont be able to
+            # plot contextual regions around aoi's
             tfm = transform_from_bounds(*aoi.bounds, width=self.shape[2], height=self.shape[1])
             projected_aoi = ops.transform(image_transform_fn(tfm, self.shape[1]), aoi)
             color = "#FC7753"
