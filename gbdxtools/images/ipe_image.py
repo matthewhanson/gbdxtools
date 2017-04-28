@@ -135,8 +135,6 @@ class DaskImage(da.Array):
             data = np.clip(data,0,1)
             plt.imshow(data,interpolation='nearest')
 
-        if aoi is None:
-            aoi = self._aoi
         if aoi is not None:
             assert isinstance(aoi, (Polygon, MultiPolygon))
             tfm = transform_from_bounds(*aoi.bounds, width=self.shape[2], height=self.shape[1])
