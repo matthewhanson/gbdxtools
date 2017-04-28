@@ -20,4 +20,5 @@ cloudpickle
 numpy
 pycurl
 rasterio==1.0a3
+descartes
 pyproj

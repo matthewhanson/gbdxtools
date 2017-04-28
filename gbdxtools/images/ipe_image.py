@@ -104,6 +104,7 @@ def image_transform_fn(tfm, height):
 class DaskImage(da.Array):
     def __init__(self, **kwargs):
         super(DaskImage, self).__init__(**kwargs)
+        self._aoi = kwargs.get("aoi", None)
 
     def nchips(self):
         size = float(self.chunks[1][0])
@@ -144,12 +145,14 @@ class DaskImage(da.Array):
             data = np.clip(data,0,1)
             plt.imshow(data,interpolation='nearest')
 
+        if aoi is None:
+            aoi = self._aoi
         if aoi is not None:
             assert isinstance(aoi, (Polygon, MultiPolygon))
             tfm = transform_from_bounds(*aoi.bounds, width=self.shape[2], height=self.shape[1])
             projected_aoi = ops.transform(image_transform_fn(tfm, self.shape[1]), aoi)
-            color = "#FC77530"
-            plt.gca().add_patch(PolygonPatch(projected_aoi, fc="#F2EFEA", ec="#FC77530", alpha=0.5, zorder=2))
+            color = "#FC7753"
+            plt.gca().add_patch(PolygonPatch(projected_aoi, ec="#FC7753", alpha=0.75, zorder=2))
 
         plt.show(block=False)
 
