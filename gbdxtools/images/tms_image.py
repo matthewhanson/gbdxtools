@@ -35,7 +35,6 @@ def load_url(url, bands=3):
           with memfile.open(driver="PNG") as dataset:
               arr = dataset.read()
       except (TypeError, rasterio.RasterioIOError) as e:
-          print(e, url)
           arr = np.zeros([bands,256,256], dtype=np.float32)
           _curl.close()
           del _curl_pool[thread_id]
@@ -47,7 +46,6 @@ class TmsImage(DaskImage):
                  zoom=22, **kwargs):
         self.zoom_level = zoom
         self._url_template = url + "?access_token={token}"
-        print(access_token)
         self._tile_size = 256
         self._nbands = 3
         self._dtype = 'uint8'
@@ -66,15 +64,12 @@ class TmsImage(DaskImage):
         cfg["dask"] = {}
         return cfg
 
-    @timeit
     def aoi(self, bounds):
         cfg = self._config_dask(bounds)
         return DaskImage(**cfg)
 
-    @timeit
     def _config_dask(self, bounds):
         urls, shape = self._collect_urls(bounds)
-        print(shape)
         img = self._build_array(urls)
         cfg = {"shape": tuple([self._nbands] + list(shape)),
                "dtype": self._dtype,
@@ -84,7 +79,6 @@ class TmsImage(DaskImage):
 
         return cfg
 
-    @timeit
     def _build_array(self, urls):
         """ Creates the deferred dask array from a grid of URLs """
         name = "image-{}".format(str(uuid.uuid4()))
