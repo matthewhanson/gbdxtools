@@ -16,7 +16,7 @@ class IdahoImage(IpeImage):
 
     def __init__(self, idaho_id, node="toa_reflectance", **kwargs):
         self.gbdx_connection = _session
-        self.gbdx_connection.headers.update({"Authorization": "Bearer {}".format(self.interface.gbdx_connection.access_token)})
+        #self.gbdx_connection.headers.update({"Authorization": "Bearer {}".format(self.interface.gbdx_connection.access_token)})
         self._gid = idaho_id
         self._level = 0
         if 'proj' in kwargs:

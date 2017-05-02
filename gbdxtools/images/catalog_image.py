@@ -142,25 +142,26 @@ class CatalogImage(IpeImage):
 
         for part in self.metadata['parts']:
             for k, p in part.items():
-                vendor_id = p['properties']['vendorDatasetIdentifier']
-                _id = p['properties']['idahoImageId']
-                meta = self.gbdx_connection.get('http://idaho.timbr.io/{}.json'.format(_id)).result().json()
-                gains_offsets = calc_toa_gain_offset(meta['properties'])
-                radiance_scales, reflectance_scales, radiance_offsets = zip(*gains_offsets)
-                if k == 'PAN':
-                    pan_graph = ipe.Orthorectify(ipe.IdahoRead(bucketName="idaho-images", imageId=_id, objectStore="S3"), **ortho_params(self._proj))
-                    pan_graph = ipe.MultiplyConst(ipe.AddConst(ipe.MultiplyConst(ipe.Format(pan_graph, dataType="4"),
-                                                                                 constants=radiance_scales),
-                                                               constants=radiance_offsets),
-                                                  constants=reflectance_scales)
-                    pan_graphs[vendor_id] = ipe.Format(ipe.MultiplyConst(pan_graph, constants=json.dumps([1000])), dataType="1")
-                else:
-                    ms_graph = ipe.Orthorectify(ipe.IdahoRead(bucketName="idaho-images", imageId=_id, objectStore="S3"), **ortho_params(self._proj))
-                    ms_graph = ipe.MultiplyConst(ipe.AddConst(ipe.MultiplyConst(ipe.Format(ms_graph, dataType="4"),
-                                                                                constants=radiance_scales),
-                                                              constants=radiance_offsets),
-                                                 constants=reflectance_scales)
-                    ms_graphs[vendor_id] = ipe.Format(ipe.MultiplyConst(ms_graph, constants=json.dumps([1000])), dataType="1")
+                if 'PAN' in part and 'WORLDVIEW_8_BAND' in part:
+                    vendor_id = p['properties']['vendorDatasetIdentifier']
+                    _id = p['properties']['idahoImageId']
+                    meta = self.gbdx_connection.get('http://idaho.timbr.io/{}.json'.format(_id)).result().json()
+                    gains_offsets = calc_toa_gain_offset(meta['properties'])
+                    radiance_scales, reflectance_scales, radiance_offsets = zip(*gains_offsets)
+                    if k == 'PAN':
+                        pan_graph = ipe.Orthorectify(ipe.IdahoRead(bucketName="idaho-images", imageId=_id, objectStore="S3"), **ortho_params(self._proj))
+                        pan_graph = ipe.MultiplyConst(ipe.AddConst(ipe.MultiplyConst(ipe.Format(pan_graph, dataType="4"),
+                                                                                     constants=radiance_scales),
+                                                                   constants=radiance_offsets),
+                                                      constants=reflectance_scales)
+                        pan_graphs[vendor_id] = ipe.Format(ipe.MultiplyConst(pan_graph, constants=json.dumps([1000])), dataType="1")
+                    else:
+                        ms_graph = ipe.Orthorectify(ipe.IdahoRead(bucketName="idaho-images", imageId=_id, objectStore="S3"), **ortho_params(self._proj))
+                        ms_graph = ipe.MultiplyConst(ipe.AddConst(ipe.MultiplyConst(ipe.Format(ms_graph, dataType="4"),
+                                                                                    constants=radiance_scales),
+                                                                  constants=radiance_offsets),
+                                                     constants=reflectance_scales)
+                        ms_graphs[vendor_id] = ipe.Format(ipe.MultiplyConst(ms_graph, constants=json.dumps([1000])), dataType="1")
 
 
         pansharpened_graphs = [ipe.LocallyProjectivePanSharpen(ms_graphs[_id], pan_graphs[_id]) for _id in pan_graphs]
