@@ -1,11 +1,25 @@
 import os
-
+import uuid
+import threading
 import mercantile
+from collections import defaultdict
+
+import numpy as np
+import rasterio
+from rasterio.io import MemoryFile
 
 from gbdxtools.images.ipe_image import DaskImage
 from gbdxtools import _session
 from gbdxtools.images.ipe_image import _curl_pool
+from gbdxtools.ipe.util import timeit
 
+try:
+    from io import BytesIO
+except ImportError:
+    from StringIO import cStringIO as BytesIO
+
+import pycurl
+_curl_pool = defaultdict(pycurl.Curl)
 
 def load_url(url, bands=3):
     """ Loads a geotiff url inside a thread and returns as an ndarray """
@@ -21,6 +35,7 @@ def load_url(url, bands=3):
           with memfile.open(driver="PNG") as dataset:
               arr = dataset.read()
       except (TypeError, rasterio.RasterioIOError) as e:
+          print(e, url)
           arr = np.zeros([bands,256,256], dtype=np.float32)
           _curl.close()
           del _curl_pool[thread_id]
@@ -30,26 +45,46 @@ class TmsImage(DaskImage):
     def __init__(self, access_token=os.environ.get("DG_MAPS_API_TOKEN"),
                  url="https://api.mapbox.com/v4/digitalglobe.nal0g75k/{z}/{x}/{y}.png",
                  zoom=22, **kwargs):
-        self.token = access_token
         self.zoom_level = zoom
-        self._url_template = url + "?{token}"
+        self._url_template = url + "?access_token={token}"
+        print(access_token)
         self._tile_size = 256
+        self._nbands = 3
+        self._dtype = 'uint8'
         self._token = access_token
-        self._cfg = self._config_dask()
+        self._cfg = self._global_dask()
         super(TmsImage, self).__init__(**self._cfg)
 
-    def _config_dask(self):
-        nbands = 3
-        urls, shape = self._collect_urls()
-        img = self._build_array(urls)
-        cfg = {"shape": tuple([nbands] + list(shape)),
+    def _global_dask(self):
+        _tile = mercantile.tile(180, -85.05, self.zoom_level)
+        nx = _tile.x * self._tile_size
+        ny = _tile.y * self._tile_size
+        cfg = {"shape": tuple([self._nbands] + [ny, nx]),
                "dtype": self._dtype,
-               "chunks": tuple([nbands] + [self._tile_size, self._tile_size])}
+               "chunks": tuple([self._nbands] + [self._tile_size, self._tile_size])}
+        cfg["name"] = "image-{}".format(str(uuid.uuid4()))
+        cfg["dask"] = {}
+        return cfg
+
+    @timeit
+    def aoi(self, bounds):
+        cfg = self._config_dask(bounds)
+        return DaskImage(**cfg)
+
+    @timeit
+    def _config_dask(self, bounds):
+        urls, shape = self._collect_urls(bounds)
+        print(shape)
+        img = self._build_array(urls)
+        cfg = {"shape": tuple([self._nbands] + list(shape)),
+               "dtype": self._dtype,
+               "chunks": tuple([self._nbands] + [self._tile_size, self._tile_size])}
         cfg["name"] = img["name"]
         cfg["dask"] = img["dask"]
 
         return cfg
 
+    @timeit
     def _build_array(self, urls):
         """ Creates the deferred dask array from a grid of URLs """
         name = "image-{}".format(str(uuid.uuid4()))
@@ -57,13 +92,16 @@ class TmsImage(DaskImage):
         return {"name": name, "dask": buf_dask}
 
 
-    def _collect_urls(self):
-        tile_coords = [(tile.x, tile.y) for tile in mercantile.tiles(-180, -85.05, 180, 85.05, [self.zoom_level])]
-        urls = {(y, x): self._url_template.format(z=self.zoom_level, x=x, y=y, token=self._token)
-                for x, y in tile_coords}
-        xtiles, ytiles = zip(tile_coords)
+    def _collect_urls(self, bounds):
+        params = bounds + [[self.zoom_level]]
+        tile_coords = [(tile.x, tile.y) for tile in mercantile.tiles(*params)]
+        xtiles, ytiles = zip(*tile_coords)
         minx = min(xtiles)
         maxx = max(xtiles)
         miny = min(ytiles)
         maxy = max(ytiles)
+
+        urls = {(y-miny, x-minx): self._url_template.format(z=self.zoom_level, x=x, y=y, token=self._token) 
+                                                for y in xrange(miny, maxy + 1) for x in xrange(minx, maxx + 1)}
+        
         return urls, (self._tile_size*(maxy-miny+1), self._tile_size*(maxx-minx+1))

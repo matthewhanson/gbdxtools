@@ -123,6 +123,8 @@ class DaskImage(da.Array):
         data = arr if arr is not None else self.read()
         if self.shape[0] == 1:
             plt.imshow(data[0,:,:], cmap="Greys_r")
+        elif self.shape[0] == 3:
+            plt.imshow(np.rollaxis(data, 0, 3), interpolation='nearest')
         else:
             data = data[[4,2,1],...]
             data = data.astype(np.float32)
