@@ -9,6 +9,10 @@ import uuid
 import math
 
 from pyproj import Proj
+from rasterio.transform import from_bounds as transform_from_bounds
+from shapely import ops
+from shapely.geometry import Polygon, MultiPolygon
+from descartes import PolygonPatch
 
 import signal
 signal.signal(signal.SIGPIPE, signal.SIG_IGN)
@@ -86,9 +90,16 @@ def load_url(url, token, bands=8):
           del _curl_pool[thread_id]
     return arr
 
+def image_transform_fn(tfm, height):
+    def to_image_coordinate(x, y, z=None):
+        coord = ~tfm * (x, y)
+        return (coord[0], height - coord[1])
+    return to_image_coordinate
+
 class DaskImage(da.Array):
     def __init__(self, **kwargs):
         super(DaskImage, self).__init__(**kwargs)
+        self._aoi = kwargs.get("aoi", None)
         self.nchips = math.ceil(float(self.shape[-1]) / 256.0) * math.ceil(float(self.shape[1]) / 256.0)
 
     def read(self, bands=None):
@@ -99,7 +110,7 @@ class DaskImage(da.Array):
             arr = arr[bands, ...]
         return arr
 
-    def plot(self, arr=None, stretch=[2,98], w=20, h=10):
+    def plot(self, arr=None, stretch=[2,98], w=20, h=10, aoi=None):
         if not has_pyplot:
             print('To plot images please install matplotlib')
             return
@@ -123,6 +134,18 @@ class DaskImage(da.Array):
                 data[:,:,x] = (data[:,:,x]-bottom)/float(top-bottom)
             data = np.clip(data,0,1)
             plt.imshow(data,interpolation='nearest')
+
+        if aoi is not None:
+            assert isinstance(aoi, (Polygon, MultiPolygon))
+            # NOTE: this assumes that the aoi bounds and the image bounds are the same
+            # which is true when that is how the image was defined to begin with.  This
+            # should get the bounds from the image itself, otherwise we wont be able to
+            # plot contextual regions around aoi's
+            tfm = transform_from_bounds(*aoi.bounds, width=self.shape[2], height=self.shape[1])
+            projected_aoi = ops.transform(image_transform_fn(tfm, self.shape[1]), aoi)
+            color = "#FC7753"
+            plt.gca().add_patch(PolygonPatch(projected_aoi, ec="#FC7753", alpha=0.75, zorder=2))
+
         plt.show(block=False)
 
 
@@ -147,7 +170,7 @@ class IpeImage(DaskImage):
         self._tile_size = kwargs.get("tile_size", 256)
         self._cfg = self._config_dask()
         super(IpeImage, self).__init__(**self._cfg)
-        self.aoi = None
+        self._aoi = None
         bounds = self._parse_geoms(**kwargs)
         if bounds is not None:
             _cfg = self._aoi_config(bounds)
@@ -189,6 +212,10 @@ class IpeImage(DaskImage):
             template = generate_vrt_template(self.interface.gbdx_connection, self.ipe_id, self.ipe_node_id, self._level, num_bands=nbands)
             vrt = put_cached_vrt(self._gid, self.ipe_id, self._level, template)
         return vrt
+
+    def plot(self, *args, **kwargs):
+        kwargs.update({"aoi": self._aoi})
+        super(IpeImage, self).plot(*args, **kwargs)
 
     def aoi(self, **kwargs):
         """ Subsets the IpeImage by the given bounds """
@@ -263,14 +290,15 @@ class IpeImage(DaskImage):
         bbox = kwargs.get('bbox', None)
         wkt = kwargs.get('wkt', None)
         geojson = kwargs.get('geojson', None)
-        bounds = None
         if bbox is not None:
-            self.aoi = box(*bounds)
+            self._aoi = box(*bbox)
         elif wkt is not None:
-            self.aoi = loads(wkt)
+            self._aoi = loads(wkt)
         elif geojson is not None:
-            self.aoi = shape(geojson)
-        return self._project_bounds(self.aoi.bounds)
+            self._aoi = shape(geojson)
+        else:
+            return None
+        return self._project_bounds(self._aoi.bounds)
 
     def _project_bounds(self, bounds):
         if bounds is None:
