@@ -10,7 +10,6 @@ from rasterio.io import MemoryFile
 
 from gbdxtools.images.ipe_image import DaskImage
 from gbdxtools import _session
-from gbdxtools.images.ipe_image import _curl_pool
 from gbdxtools.ipe.util import timeit
 
 try:
@@ -18,26 +17,14 @@ try:
 except ImportError:
     from StringIO import cStringIO as BytesIO
 
-import pycurl
-_curl_pool = defaultdict(pycurl.Curl)
+import gdal
 
 def load_url(url, bands=3):
-    """ Loads a geotiff url inside a thread and returns as an ndarray """
-    thread_id = threading.current_thread().ident
-    _curl = _curl_pool[thread_id]
-    buf = BytesIO()
-    _curl.setopt(_curl.URL, url)
-    _curl.setopt(_curl.WRITEDATA, buf)
-    _curl.setopt(pycurl.NOSIGNAL, 1)
-    _curl.perform()
-    with MemoryFile(buf.getvalue()) as memfile:
-      try:
-          with memfile.open(driver="PNG") as dataset:
-              arr = dataset.read()
-      except (TypeError, rasterio.RasterioIOError) as e:
-          arr = np.zeros([bands,256,256], dtype=np.float32)
-          _curl.close()
-          del _curl_pool[thread_id]
+    try:
+        src = gdal.Open('/vsicurl/{}'.format(url))
+        arr = src.ReadAsArray()
+    except:
+        arr = np.zeros([bands,256,256], dtype=np.float32)
     return arr
 
 class TmsImage(DaskImage):

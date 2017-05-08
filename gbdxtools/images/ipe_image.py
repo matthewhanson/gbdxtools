@@ -40,10 +40,6 @@ from shapely.wkt import loads
 import rasterio
 from rasterio.io import MemoryFile
 from affine import Affine
-try:
-    import gdal
-except:
-    from osgeo import gdal
 
 try:
     from matplotlib import pyplot as plt
