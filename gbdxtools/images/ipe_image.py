@@ -38,6 +38,7 @@ from shapely.wkt import loads
 import rasterio
 from rasterio.io import MemoryFile
 from affine import Affine
+import gdal
 
 try:
   from matplotlib import pyplot as plt
@@ -57,8 +58,6 @@ num_workers = int(os.environ.get("GBDX_THREADS", 4))
 threaded_get = partial(dask.threaded.get, num_workers=num_workers)
 
 import requests
-import pycurl
-_curl_pool = defaultdict(pycurl.Curl)
 
 from gbdxtools import _session
 
@@ -72,22 +71,12 @@ ipe = Ipe()
 
 def load_url(url, token, bands=8):
     """ Loads a geotiff url inside a thread and returns as an ndarray """
-    thread_id = threading.current_thread().ident
-    _curl = _curl_pool[thread_id]
-    buf = BytesIO()
-    _curl.setopt(_curl.URL, url)
-    _curl.setopt(_curl.WRITEDATA, buf)
-    _curl.setopt(pycurl.NOSIGNAL, 1)
-    _curl.setopt(pycurl.HTTPHEADER, ['Authorization: {}'.format(token)])
-    _curl.perform()
-    with MemoryFile(buf.getvalue()) as memfile:
-      try:
-          with memfile.open(driver="GTiff") as dataset:
-              arr = dataset.read()
-      except (TypeError, rasterio.RasterioIOError) as e:
-          arr = np.zeros([bands,256,256], dtype=np.float32)
-          _curl.close()
-          del _curl_pool[thread_id]
+    try:
+        src = gdal.Open('/vsicurl/{}?token={}'.format(url, token))
+        arr = src.ReadAsArray()
+    except Exception as e:
+        print(e, url, '/vsicurl/{}?token={}'.format(url, token))
+        arr = np.zeros([bands,256,256], dtype=np.float32)
     return arr
 
 def image_transform_fn(tfm, height):
@@ -267,10 +256,7 @@ class IpeImage(DaskImage):
     def _build_array(self, urls):
         """ Creates the deferred dask array from a grid of URLs """
         name = "image-{}".format(str(uuid.uuid4()))
-        try:
-            token = 'Bearer {}'.format(self.interface.gbdx_connection.access_token)
-        except:
-            token = self.interface.gbdx_connection.headers['Authorization']
+        token = self.interface.gbdx_connection.access_token
         buf_dask = {(name, 0, x, y): (load_url, url, token) for (x, y), url in urls.items()}
         return {"name": name, "dask": buf_dask}
 
