@@ -53,6 +53,8 @@ class TmsImage(DaskImage):
 
     def aoi(self, bounds):
         cfg = self._config_dask(bounds)
+        # TODO: this needs to also compute the proper geotransform for the tiles image,
+        # convert the bounds to a window and index the image via that window
         return DaskImage(**cfg)
 
     def _config_dask(self, bounds):
@@ -82,7 +84,7 @@ class TmsImage(DaskImage):
         miny = min(ytiles)
         maxy = max(ytiles)
 
-        urls = {(y-miny, x-minx): self._url_template.format(z=self.zoom_level, x=x, y=y, token=self._token) 
+        urls = {(y-miny, x-minx): self._url_template.format(z=self.zoom_level, x=x, y=y, token=self._token)
                                                 for y in xrange(miny, maxy + 1) for x in xrange(minx, maxx + 1)}
-        
+
         return urls, (self._tile_size*(maxy-miny+1), self._tile_size*(maxx-minx+1))
