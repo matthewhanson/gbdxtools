@@ -70,8 +70,8 @@ class CatalogImage(IpeImage):
             aoi = "POLYGON((-180.0 90.0,180.0 90.0,180.0 -90.0,-180.0 -90.0,-180.0 90.0))"
         try:
             return self.vectors.query(aoi, query=query)
-        except:
-            raise Exception('Unable to query for image properties, the service may be currently down.')
+        except Exception as e:
+            raise Exception('Unable to query for image properties, the service may be currently down.', e)
 
     @property
     def properties(self):
