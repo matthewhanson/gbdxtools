@@ -11,7 +11,7 @@ if sys.version_info > (3,):
 # long_description=readme,
 
 setup(name='gbdxtools',
-      version='0.11.2',
+      version='0.11.7',
       description='Additional s3 functionality.',
       classifiers=[],
       keywords='',
@@ -35,8 +35,8 @@ setup(name='gbdxtools',
                         'numpy',
                         'toolz',
                         'dask==0.13.0',
-                        'gdal',
                         'cloudpickle',
+                        'gdal',
                         'rasterio>=1.0a3',
                         'pyproj'
                         ],

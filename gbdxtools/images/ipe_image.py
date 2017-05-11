@@ -31,8 +31,6 @@ try:
 except NameError:
     xrange = range
 
-import requests
-
 from shapely.geometry import box, shape
 from shapely.wkt import loads
 import rasterio
@@ -57,8 +55,6 @@ import threading
 num_workers = int(os.environ.get("GBDX_THREADS", 4))
 threaded_get = partial(dask.threaded.get, num_workers=num_workers)
 
-import requests
-
 from gbdxtools import _session
 
 from gbdxtools.ipe.vrt import get_cached_vrt, put_cached_vrt, generate_vrt_template
@@ -74,6 +70,8 @@ def load_url(url, token, bands=8):
     try:
         src = gdal.Open('/vsicurl/{}?token={}'.format(url, token))
         arr = src.ReadAsArray()
+        if len(arr.shape) != 3:
+            arr = np.reshape(arr, (1,) + arr.shape)
     except Exception as e:
         print(e, url, '/vsicurl/{}?token={}'.format(url, token))
         arr = np.zeros([bands,256,256], dtype=np.float32)
