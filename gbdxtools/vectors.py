@@ -253,7 +253,7 @@ class Vectors(object):
 
         url = self.aggregations_by_index_url % index if index else self.aggregations_url
 
-        r = self.gbdx_connection.post(url, params=params, json=geojson)
+        r = self.gbdx_connection.post(url, params=params, json=geojson).result()
         r.raise_for_status()
 
         return r.json(object_pairs_hook=OrderedDict)['aggregations']
