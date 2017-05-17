@@ -209,10 +209,7 @@ class Vectors(object):
           data = page['data']
 
           for vector in data:
-<<<<<<< HEAD
               yield vector
-=======
-            yield vector
 
     def aggregate_query(self, searchAreaWkt, agg_def, query=None, start_date=None, end_date=None, count=10, index=default_index):
         """Aggregates results of a query into buckets defined by the 'agg_def' parameter.  The aggregations are
