@@ -357,5 +357,3 @@ class AvgGeoLonAggDef(AggregationDef):
 
     def __init__(self):
         super(AvgGeoLonAggDef, self).__init__('avg_geo_lon')
-
->>>>>>> replace-pycurl
