@@ -68,7 +68,10 @@ class TaskRegistry(object):
         """
         r = self.gbdx_connection.get(self._base_url + '/' + task_name)
         if r.status_code == 500 and "has failed registration" in r.text:
-            print "%s has failed registration.  This is usually because GBDX cannot find or access the referenced dockerhub image.  Is it named correctly and either public or shared with the correct GBDX dockerhub users?" % task_name
+            print("%s has failed registration.  This is usually because GBDX cannot find or access the referenced dockerhub image.  Is it named correctly and either public or shared with the correct GBDX dockerhub users?" % task_name)
+
+        if r.status_code == 202 and "has been submitted for registration" in r.text:
+            raise Exception("Task %s is still pending registration.  Please wait." % task_name)
 
         r.raise_for_status()
 
