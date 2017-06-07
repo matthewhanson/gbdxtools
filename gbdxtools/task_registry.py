@@ -67,7 +67,12 @@ class TaskRegistry(object):
             Dictionary representing the task definition.
         """
         r = self.gbdx_connection.get(self._base_url + '/' + task_name)
+        if r.status_code == 500 and "has failed registration" in r.text:
+            print "%s has failed registration.  This is usually because GBDX cannot find or access the referenced dockerhub image.  Is it named correctly and either public or shared with the correct GBDX dockerhub users?" % task_name
+
         r.raise_for_status()
+
+
 
         return r.json()
 
