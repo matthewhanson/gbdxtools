@@ -6,7 +6,7 @@ from collections import defaultdict
 
 import numpy as np
 import rasterio
-from rasterio.io import MemoryFile
+from rasterio.transform import from_bounds as transform_from_bounds        
 
 from gbdxtools.images.ipe_image import DaskImage
 from gbdxtools import _session
@@ -53,9 +53,15 @@ class TmsImage(DaskImage):
 
     def aoi(self, bounds):
         cfg = self._config_dask(bounds)
-        # TODO: this needs to also compute the proper geotransform for the tiles image,
-        # convert the bounds to a window and index the image via that window
-        return DaskImage(**cfg)
+        tile_aoi = DaskImage(**cfg)
+        aoi_bounds = self._tile_bounds(*self._tile_coords(bounds))
+        tfm = transform_from_bounds(*aoi_bounds, width=tile_aoi.shape[2], height=tile_aoi.shape[1])
+        args = list(bounds) + [tfm]
+        roi = rasterio.windows.from_bounds(*args, boundless=True)
+        row_slice, col_slice = roi.toslices()
+        aoi = tile_aoi[:, row_slice, col_slice]
+        return aoi
+        
 
     def _config_dask(self, bounds):
         urls, shape = self._collect_urls(bounds)
@@ -76,6 +82,14 @@ class TmsImage(DaskImage):
 
 
     def _collect_urls(self, bounds):
+        minx, miny, maxx, maxy = self._tile_coords(bounds)
+        urls = {(y-miny, x-minx): self._url_template.format(z=self.zoom_level, x=x, y=y, token=self._token)
+                                                for y in xrange(miny, maxy + 1) for x in xrange(minx, maxx + 1)}
+
+        return urls, (self._tile_size*(maxy-miny+1), self._tile_size*(maxx-minx+1))
+
+    def _tile_coords(self, bounds):
+        """ Convert tile coords mins/maxs to lng/lat bounds """ 
         params = bounds + [[self.zoom_level]]
         tile_coords = [(tile.x, tile.y) for tile in mercantile.tiles(*params)]
         xtiles, ytiles = zip(*tile_coords)
@@ -83,8 +97,11 @@ class TmsImage(DaskImage):
         maxx = max(xtiles)
         miny = min(ytiles)
         maxy = max(ytiles)
+        return minx, miny, maxx, maxy
 
-        urls = {(y-miny, x-minx): self._url_template.format(z=self.zoom_level, x=x, y=y, token=self._token)
-                                                for y in xrange(miny, maxy + 1) for x in xrange(minx, maxx + 1)}
-
-        return urls, (self._tile_size*(maxy-miny+1), self._tile_size*(maxx-minx+1))
+    def _tile_bounds(self, minx, miny, maxx, maxy):
+        """ Convert tile coords mins/maxs to lng/lat bounds """ 
+        # TODO these are sort of odd numbers to work with, could be wrong
+        mins = mercantile.bounds(minx, miny, self.zoom_level)
+        maxs = mercantile.bounds(maxx, maxy, self.zoom_level)
+        return [mins.west, maxs.south, maxs.east, mins.north] 

@@ -188,7 +188,6 @@ class Vectors(object):
             "upper": upper
         }
 
-        # initialize paging request
         url = self.query_index_url % index if index else self.query_url
         r = self.gbdx_connection.get(url, params=params).result()
         r.raise_for_status()

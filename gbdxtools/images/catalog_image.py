@@ -71,8 +71,8 @@ class CatalogImage(IpeImage):
             aoi = "POLYGON((-180.0 90.0,180.0 90.0,180.0 -90.0,-180.0 -90.0,-180.0 90.0))"
         try:
             return self.vectors.query(aoi, query=query)
-        except:
-            raise Exception('Unable to query for image properties, the service may be currently down.')
+        except Exception as e:
+            raise Exception('Unable to query for image properties, the service may be currently down.', e)
 
     @property
     def properties(self):
@@ -172,23 +172,10 @@ class CatalogImage(IpeImage):
     def _mosaic(self, graph, suffix=''):
         mosaic = ipe.GeospatialMosaic(*graph.values())
         idaho_id = list(graph.keys())[0]
-        #meta = resolve_if_future(self.gbdx_connection.get('http://idaho.timbr.io/{}.json'.format(idaho_id))).json()
-        print('http://idaho.timbr.io/{}.json'.format(idaho_id))
         meta = self.gbdx_connection.get('http://idaho.timbr.io/{}.json'.format(idaho_id)).result().json()
-        print(meta.keys())
         gains_offsets = calc_toa_gain_offset(meta['properties'])
         radiance_scales, reflectance_scales, radiance_offsets = zip(*gains_offsets)
         radiance = ipe.AddConst(ipe.MultiplyConst(ipe.Format(mosaic, dataType="4"), constants=radiance_scales), constants=radiance_offsets)
         toa = ipe.MultiplyConst(radiance, constants=reflectance_scales)
         graph.update({"mosaic{}".format(suffix): mosaic, "radiance{}".format(suffix): radiance, "toa_reflectance{}".format(suffix): toa})
         return graph
-
-if __name__ == '__main__':
-    n = 10
-    from concurrent.futures import ThreadPoolExecutor
-
-    with ThreadPoolExecutor(max_workers=16) as pool:
-        def initializer(cat_id):
-            return (cat_id, CatalogImage(cat_id, node='mosaic'))
-        base_images = [img.ipe_id for cat_id, img in pool.map(initializer, ['104001001BA7C400']*n)]
-        print(base_images)

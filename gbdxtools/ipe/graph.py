@@ -1,9 +1,16 @@
 import json
 from util import resolve_if_future
+from concurrent.futures import Future
 
 VIRTUAL_IPE_URL = "https://idahoapi.geobigdata.io/v1"
 
 from gbdxtools.ipe.error import NotFound, BadRequest
+
+def resolve_if_future(future):
+    if isinstance(future, Future):
+        return future.result()
+    else:
+        return future
 
 def get_ipe_graph(conn, graph_id):
     url = "{}/graph/{}".format(VIRTUAL_IPE_URL, graph_id)
