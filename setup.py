@@ -35,6 +35,7 @@ setup(name='gbdxtools',
                         'numpy',
                         'toolz',
                         'dask==0.13.0',
+                        'pycurl'
                         'gdal',
                         'cloudpickle',
                         'rasterio>=1.0a3',

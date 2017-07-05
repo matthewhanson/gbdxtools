@@ -19,6 +19,7 @@ dask==0.13.0
 cloudpickle
 numpy
 gdal
+pycurl
 rasterio==1.0a3
 descartes
 pyproj
