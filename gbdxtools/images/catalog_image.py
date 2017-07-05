@@ -17,7 +17,7 @@ from shapely.geometry import box, shape
 import requests
 
 from gbdxtools.auth import Auth
-from gbdxtools.ipe.util import calc_toa_gain_offset, ortho_params
+from gbdxtools.ipe.util import calc_toa_gain_offset, ortho_params, resolve_if_future
 from gbdxtools.images.ipe_image import IpeImage, DaskImage
 from gbdxtools.vectors import Vectors
 from gbdxtools.ipe.interface import Ipe
@@ -172,7 +172,10 @@ class CatalogImage(IpeImage):
     def _mosaic(self, graph, suffix=''):
         mosaic = ipe.GeospatialMosaic(*graph.values())
         idaho_id = list(graph.keys())[0]
+        #meta = resolve_if_future(self.gbdx_connection.get('http://idaho.timbr.io/{}.json'.format(idaho_id))).json()
+        print('http://idaho.timbr.io/{}.json'.format(idaho_id))
         meta = self.gbdx_connection.get('http://idaho.timbr.io/{}.json'.format(idaho_id)).result().json()
+        print(meta.keys())
         gains_offsets = calc_toa_gain_offset(meta['properties'])
         radiance_scales, reflectance_scales, radiance_offsets = zip(*gains_offsets)
         radiance = ipe.AddConst(ipe.MultiplyConst(ipe.Format(mosaic, dataType="4"), constants=radiance_scales), constants=radiance_offsets)

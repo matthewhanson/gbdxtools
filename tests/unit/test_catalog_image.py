@@ -55,7 +55,7 @@ class CatalogImageTest(unittest.TestCase):
         assert img.shape == (8, 79616, 11008)
         assert img._proj == 'EPSG:4326'
 
-    @my_vcr.use_cassette('tests/unit/cassettes/test_image_default.yaml', filter_headers=['authorization'])
+    @my_vcr.use_cassette('tests/unit/cassettes/test_image_default_aoi.yaml', filter_headers=['authorization'])
     def test_cat_image_with_aoi(self):
         _id = '104001002838EC00'
         img = self.gbdx.catalog_image(_id, bbox=[-85.81455230712892,10.416235163695223,-85.77163696289064,10.457089934231618])

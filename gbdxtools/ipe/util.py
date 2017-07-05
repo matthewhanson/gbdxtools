@@ -3,6 +3,8 @@ import os
 import errno
 import datetime
 
+from concurrent.futures import Future
+
 import numpy as np
 
 import xml.etree.cElementTree as ET
@@ -100,3 +102,9 @@ def timeit(func):
             func.__name__, elapsedTime))
         return res
     return newfunc
+
+def resolve_if_future(future):
+    if isinstance(future, Future):
+        return future.result()
+    else:
+        return future

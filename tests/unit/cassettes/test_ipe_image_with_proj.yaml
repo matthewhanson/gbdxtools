@@ -51,34 +51,35 @@ interactions:
         "id": "1ec49348-8950-49ff-bd71-ea2e4d8754ac"}'}
     headers:
       content-type: [application/json]
-      date: ['Wed, 07 Jun 2017 20:20:56 GMT']
+      date: ['Wed, 05 Jul 2017 19:55:30 GMT']
       server: [TwistedWeb/16.4.1]
     status: {code: 200, message: OK}
 - request:
-    body: !!python/unicode '{"nodes": [{"operator": "MultiplyConst", "id": "a9a095f3-9f1d-544d-a517-bb1960a0ff42",
-      "parameters": {"constants": "[0.002958531417393051, 0.002594406290161713, 0.002841672837273421,
+    body: !!python/unicode '{"edges": [{"destination": "8f2f5d66-795d-55cf-9797-f69c4ff2818d",
+      "id": "5d80f654-f281-59b9-bbde-52cd91567c21", "index": 1, "source": "7449bab2-f7e2-5eb0-a800-e42d2f1209e0"},
+      {"destination": "7449bab2-f7e2-5eb0-a800-e42d2f1209e0", "id": "5ffde507-8488-5a54-84e7-92d2bf87a099",
+      "index": 1, "source": "e7f6fb47-b179-57d1-a287-0a7f73b0cb49"}, {"destination":
+      "e7f6fb47-b179-57d1-a287-0a7f73b0cb49", "id": "7f90e4f2-7c9b-55d6-96b4-268849945d21",
+      "index": 1, "source": "f438aac0-a7e2-520e-944e-4f555d4bc3fd"}, {"destination":
+      "f438aac0-a7e2-520e-944e-4f555d4bc3fd", "id": "a842636b-f3a3-558e-b777-1240b7f3dc88",
+      "index": 1, "source": "6cb22f40-a5ea-5b12-b5eb-21ceac04e5c4"}, {"destination":
+      "6cb22f40-a5ea-5b12-b5eb-21ceac04e5c4", "id": "df00620c-8cdc-504f-b800-dbba90dc2f18",
+      "index": 1, "source": "11ee59e6-8988-55a6-8ab4-71db9ade2851"}], "nodes": [{"id":
+      "8f2f5d66-795d-55cf-9797-f69c4ff2818d", "operator": "MultiplyConst", "parameters":
+      {"constants": "[0.002958531417393051, 0.002594406290161713, 0.002841672837273421,
       0.0030377103700906334, 0.003387397362991064, 0.003857911098244222, 0.0049252540800813205,
-      0.006056071815877442]"}}, {"operator": "AddConst", "id": "42692291-47f7-5e33-b8e5-751674c1dc36",
-      "parameters": {"constants": "[-7.154, -4.189, -3.287, -1.816, -1.35, -2.617,
-      -3.752, -1.507]"}}, {"operator": "MultiplyConst", "id": "76d73a39-8255-5495-8ba2-b01619ff5d7e",
-      "parameters": {"constants": "[0.10326683239595048, 0.1454538449612403, 0.11450949849514563,
-      0.16847243202099735, 0.18043025, 0.3467191604938271, 0.11538597808764939, 0.16633846153846152]"}},
-      {"operator": "Format", "id": "c733b763-ab2c-5880-ac1c-f1b2c2e2a7b8", "parameters":
-      {"dataType": "4"}}, {"operator": "Orthorectify", "id": "a3cc3633-a312-5df8-b306-e058b750e78b",
-      "parameters": {"Elevation Source": "null", "Output Coordinate Reference System":
-      "EPSG:3857", "Output Pixel to World Transform": "null", "Sensor Model": "null"}},
-      {"operator": "IdahoRead", "id": "1278f144-46fa-56be-8751-e7439abf31a4", "parameters":
-      {"objectStore": "S3", "bucketName": "idaho-images", "imageId": "1ec49348-8950-49ff-bd71-ea2e4d8754ac"}}],
-      "edges": [{"index": 1, "destination": "a9a095f3-9f1d-544d-a517-bb1960a0ff42",
-      "id": "5c323ad3-17e8-5fe6-a1f6-b9cf49ef5cb3", "source": "42692291-47f7-5e33-b8e5-751674c1dc36"},
-      {"index": 1, "destination": "42692291-47f7-5e33-b8e5-751674c1dc36", "id": "ebe4f801-eff1-51d9-80dc-0c5cf0e7d936",
-      "source": "76d73a39-8255-5495-8ba2-b01619ff5d7e"}, {"index": 1, "destination":
-      "76d73a39-8255-5495-8ba2-b01619ff5d7e", "id": "2175e9f3-eca7-5a27-ab78-9f7fbcadff17",
-      "source": "c733b763-ab2c-5880-ac1c-f1b2c2e2a7b8"}, {"index": 1, "destination":
-      "c733b763-ab2c-5880-ac1c-f1b2c2e2a7b8", "id": "66dc99c5-46ad-5e88-a683-f39c9bb3a712",
-      "source": "a3cc3633-a312-5df8-b306-e058b750e78b"}, {"index": 1, "destination":
-      "a3cc3633-a312-5df8-b306-e058b750e78b", "id": "316913f7-ea85-53f2-8cce-c69e9ed38be4",
-      "source": "1278f144-46fa-56be-8751-e7439abf31a4"}]}'
+      0.006056071815877442]"}}, {"id": "7449bab2-f7e2-5eb0-a800-e42d2f1209e0", "operator":
+      "AddConst", "parameters": {"constants": "[-7.154, -4.189, -3.287, -1.816, -1.35,
+      -2.617, -3.752, -1.507]"}}, {"id": "e7f6fb47-b179-57d1-a287-0a7f73b0cb49", "operator":
+      "MultiplyConst", "parameters": {"constants": "[0.10326683239595048, 0.1454538449612403,
+      0.11450949849514563, 0.16847243202099735, 0.18043025, 0.3467191604938271, 0.11538597808764939,
+      0.16633846153846152]"}}, {"id": "f438aac0-a7e2-520e-944e-4f555d4bc3fd", "operator":
+      "Format", "parameters": {"dataType": "4"}}, {"id": "6cb22f40-a5ea-5b12-b5eb-21ceac04e5c4",
+      "operator": "Orthorectify", "parameters": {"Elevation Source": "null", "Output
+      Coordinate Reference System": "EPSG:3857", "Output Pixel to World Transform":
+      "null", "Sensor Model": "null"}}, {"id": "11ee59e6-8988-55a6-8ab4-71db9ade2851",
+      "operator": "IdahoRead", "parameters": {"bucketName": "idaho-images", "imageId":
+      "1ec49348-8950-49ff-bd71-ea2e4d8754ac", "objectStore": "S3"}}]}'
     headers:
       Accept: ['*/*']
       Accept-Encoding: ['gzip, deflate']
@@ -89,7 +90,7 @@ interactions:
     method: POST
     uri: https://idahoapi.geobigdata.io/v1/graph
   response:
-    body: {string: !!python/unicode 9f2766925fe588460e423e19aa06a12e70bd3411088a071249e6c2bae5e7d9f0}
+    body: {string: !!python/unicode ec48c2d3b12be55b64eff4219175ef53b31a2c34a312a3c9b8ca4220e2050f3d}
     headers:
       access-control-allow-headers: ['x-requested-with, X-Auth-Token, Content-Type,
           Authorization']
@@ -99,7 +100,7 @@ interactions:
       connection: [keep-alive]
       content-length: ['64']
       content-type: [text/plain]
-      date: ['Wed, 07 Jun 2017 20:20:56 GMT']
+      date: ['Wed, 05 Jul 2017 19:55:31 GMT']
     status: {code: 200, message: OK}
 - request:
     body: null
@@ -109,7 +110,7 @@ interactions:
       Connection: [keep-alive]
       User-Agent: [python-requests/2.13.0]
     method: GET
-    uri: https://idahoapi.geobigdata.io/v1/metadata/idaho-virtual/9f2766925fe588460e423e19aa06a12e70bd3411088a071249e6c2bae5e7d9f0/a9a095f3-9f1d-544d-a517-bb1960a0ff42/image.json
+    uri: https://idahoapi.geobigdata.io/v1/metadata/idaho-virtual/ec48c2d3b12be55b64eff4219175ef53b31a2c34a312a3c9b8ca4220e2050f3d/8f2f5d66-795d-55cf-9797-f69c4ff2818d/image.json
   response:
     body: {string: !!python/unicode '{"imageId":"1ec49348-8950-49ff-bd71-ea2e4d8754ac","version":"1.0","profileName":"dg_1b","tilePartition":"0000","tileXOffset":0,"tileYOffset":0,"numXTiles":58,"numYTiles":59,"tileXSize":256,"tileYSize":256,"numBands":8,"dataType":"FLOAT","imageHeight":14670,"imageWidth":14632,"sensorPlatformName":"WV03","sensorName":"8-band
         (Coastal, Blue, Green, Yellow, Red, Red-edge, NIR1, NIR2) Multispectral","vendorName":"DigitalGlobe,
@@ -126,7 +127,7 @@ interactions:
       connection: [keep-alive]
       content-length: ['1088']
       content-type: [application/json]
-      date: ['Wed, 07 Jun 2017 20:20:57 GMT']
+      date: ['Wed, 05 Jul 2017 19:55:31 GMT']
     status: {code: 200, message: OK}
 - request:
     body: null
@@ -136,7 +137,7 @@ interactions:
       Connection: [keep-alive]
       User-Agent: [python-requests/2.13.0]
     method: GET
-    uri: https://idahoapi.geobigdata.io/v1/metadata/idaho-virtual/9f2766925fe588460e423e19aa06a12e70bd3411088a071249e6c2bae5e7d9f0/a9a095f3-9f1d-544d-a517-bb1960a0ff42/georeferencing.json
+    uri: https://idahoapi.geobigdata.io/v1/metadata/idaho-virtual/ec48c2d3b12be55b64eff4219175ef53b31a2c34a312a3c9b8ca4220e2050f3d/8f2f5d66-795d-55cf-9797-f69c4ff2818d/georeferencing.json
   response:
     body: {string: !!python/unicode '{"spatialReferenceSystemCode":"EPSG:3857","scaleX":1.372,"scaleY":-1.372,"translateX":-8239788.992630752,"translateY":5703660.232416099,"shearX":0.0,"shearY":0.0}'}
     headers:
@@ -148,6 +149,6 @@ interactions:
       connection: [keep-alive]
       content-length: ['162']
       content-type: [application/json]
-      date: ['Wed, 07 Jun 2017 20:20:57 GMT']
+      date: ['Wed, 05 Jul 2017 19:55:32 GMT']
     status: {code: 200, message: OK}
 version: 1

@@ -31,6 +31,7 @@ class Vectors(object):
             An instance of the Vectors interface class.
         '''
         interface = Auth(**kwargs)
+        print(dir(interface), interface.gbdx_connection)
         self.gbdx_connection = _session
         self.gbdx_connection.headers.update({"Authorization": "Bearer {}".format(interface.gbdx_connection.access_token)})
 
