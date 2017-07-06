@@ -1,5 +1,5 @@
 import json
-from util import resolve_if_future
+from gbdxtools.ipe.util import resolve_if_future
 from concurrent.futures import Future
 
 VIRTUAL_IPE_URL = "https://idahoapi.geobigdata.io/v1"
