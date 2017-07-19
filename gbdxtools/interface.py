@@ -19,7 +19,9 @@ from gbdxtools.workflow import Workflow
 from gbdxtools.catalog import Catalog
 from gbdxtools.vectors import Vectors
 from gbdxtools.idaho import Idaho
-if with_pixel_access:
+import gbdxtools.with_pixel_access
+
+if gbdxtools.with_pixel_access:
     from gbdxtools import IdahoImage, CatalogImage, LandsatImage
 from gbdxtools.task_registry import TaskRegistry
 import gbdxtools.simpleworkflows
@@ -50,7 +52,7 @@ class Interface(object):
 
         self.vectors = Vectors()
 
-        if with_pixel_access:
+        if gbdxtools.with_pixel_access:
             self.catalog_image = CatalogImage
             self.idaho_image = IdahoImage
             self.landsat_image = LandsatImage
