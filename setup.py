@@ -5,10 +5,9 @@ open_kwds = {}
 if sys.version_info > (3,):
     open_kwds['encoding'] = 'utf-8'
 
-# with open('README.md', **open_kwds) as f:
-#     readme = f.read()
-
-# long_description=readme,
+extras = {
+   'with_pixel_access': ['shapely','numpy','dask==0.13.0','rasterio>=1.0a3','pycurl','pyproj']
+}
 
 setup(name='gbdxtools',
       version='0.11.13',
@@ -30,16 +29,11 @@ setup(name='gbdxtools',
                         'six==1.10.0',
                         'future==0.15.2',
                         'geomet==0.1.1',
-                        'shapely',
                         'ephem',
-                        'numpy',
                         'toolz',
-                        'dask==0.13.0',
-                        'cloudpickle',
-                        'pycurl',
-                        'rasterio>=1.0a3',
-                        'pyproj'
+                        'cloudpickle'
                         ],
+      extras_require=extras,
       setup_requires=['pytest-runner'],
       tests_require=['pytest','vcrpy']
       )
