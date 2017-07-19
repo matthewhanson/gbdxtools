@@ -19,12 +19,8 @@ from gbdxtools.workflow import Workflow
 from gbdxtools.catalog import Catalog
 from gbdxtools.vectors import Vectors
 from gbdxtools.idaho import Idaho
-try:
+if with_pixel_access:
     from gbdxtools import IdahoImage, CatalogImage, LandsatImage
-    with_pixel_access = True
-except:
-    print('Advanced pixel functionality disabled.  install gbdxtools[with_pixel_access] to enable.')
-    with_pixel_access = False
 from gbdxtools.task_registry import TaskRegistry
 import gbdxtools.simpleworkflows
 
