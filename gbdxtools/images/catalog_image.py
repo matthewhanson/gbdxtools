@@ -4,13 +4,16 @@ GBDX Catalog Image Interface.
 Contact: chris.helm@digitalglobe.com
 """
 from __future__ import print_function
+import types
+
 from gbdxtools import IdahoImage, WV02, WV03_VNIR, LandsatImage, IkonosImage
 from gbdxtools.images.ipe_image import IpeImage
 from gbdxtools.vectors import Vectors
 from gbdxtools.ipe.error import UnsupportedImageType
 
 from shapely import wkt
-from shapely.geometry import box
+from shapely.geometry import box, shape, mapping
+from shapely.geometry.base import BaseGeometry
 
 class CatalogImage(object):
     '''Creates an image instance matching the type of the Catalog ID.
@@ -23,7 +26,7 @@ class CatalogImage(object):
         pansharpen: Whether or not to return a pansharpened image (defaults to False)
 
     Returns:
-        image (ndarray): An image instance - one of IdahoImage, WV02, WV03_VNIR, LandsatImage, IkonosImage 
+        image (ndarray): An image instance - one of IdahoImage, WV02, WV03_VNIR, LandsatImage, IkonosImage
 
     Properties:
         :affine: The image affine transformation
@@ -31,6 +34,19 @@ class CatalogImage(object):
         :proj: The image projection
     '''
     def __new__(cls, cat_id, **kwargs):
+        if isinstance(cat_id, BaseGeometry) or "__geo_interface__" in cat_id.__dict__:
+            g = shape(cat_id)
+            vectors = Vectors()
+            records = vectors.query(g.wkt,
+                                    "item_type:IDAHOImage AND (item_type:WV02 OR item_type:WV03_VNIR)"
+                                    " AND attributes.cloudCover_int:0")
+            records = [rec for rec in records if shape(rec["geometry"]).contains(g)]
+            try:
+                cat_id = records[0]["properties"]["attributes"]["catalogID"]
+                kwargs["geojson"] = mapping(g)
+            except IndexError:
+                raise StandardError("No images found in specified geometry")
+
         return cls._image_by_type(cat_id, **kwargs)
 
     @classmethod
@@ -57,5 +73,5 @@ class CatalogImage(object):
             return LandsatImage(cat_id, **kwargs)
         #elif 'IKONOS' in types:
         #    return IkonosImage(rec['properties']['attributes']['prefix'], bucket=rec['properties']['attributes']['bucket_name'], **kwargs)
-        else: 
+        else:
             raise UnsupportedImageType('Unsupported image type: {}'.format(str(types)))
