@@ -15,6 +15,10 @@ from shapely import wkt
 from shapely.geometry import box, shape, mapping
 from shapely.geometry.base import BaseGeometry
 
+import datetime as dt
+
+to_datetime = lambda x: dt.datetime.strptime(x["properties"]["item_date"], "%Y-%m-%dT%H:%M:%S.%fZ")
+
 class CatalogImage(object):
     '''Creates an image instance matching the type of the Catalog ID.
 
@@ -42,6 +46,7 @@ class CatalogImage(object):
                                     " AND attributes.cloudCover_int:0")
             records = [rec for rec in records if shape(rec["geometry"]).contains(g)]
             try:
+                records = sorted(records, key=to_datetime, reverse=True)
                 cat_id = records[0]["properties"]["attributes"]["catalogID"]
                 kwargs["geojson"] = mapping(g)
             except IndexError:
