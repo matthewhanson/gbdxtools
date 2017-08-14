@@ -5,14 +5,10 @@ from itertools import chain
 from collections import OrderedDict, defaultdict
 import threading
 
-
-
-
 import rasterio
 from rasterio.io import MemoryFile
 import pycurl
 import numpy as np
-
 
 import gbdxtools as gbdx
 from gbdxtools.ipe.graph import VIRTUAL_IPE_URL, register_ipe_graph, get_ipe_metadata
@@ -54,6 +50,7 @@ def load_url(url, token, shape=(8, 256, 256)):
     """ Loads a geotiff url inside a thread and returns as an ndarray """
     thread_id = threading.current_thread().ident
     _curl = _curl_pool[thread_id]
+    _curl.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_1_0)
     _curl.setopt(_curl.URL, url)
     _curl.setopt(pycurl.NOSIGNAL, 1)
     _curl.setopt(pycurl.HTTPHEADER, ['Authorization: Bearer {}'.format(token)])
@@ -66,7 +63,7 @@ def load_url(url, token, shape=(8, 256, 256)):
                 raise TypeError("Request for {} returned unexpected error code: {}".format(url, code))
             with memfile.open(driver="GTiff") as dataset:
                 arr = dataset.read()
-        except (TypeError, rasterio.RasterioIOError) as e:
+        except (TypeError, rasterio.RasterioIOError, IOError) as e:
             print(e)
             memfile.seek(0)
             print(memfile.read())
