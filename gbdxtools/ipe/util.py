@@ -40,6 +40,29 @@ IPE_TO_DTYPE = {
     "DOUBLE": "float64"
 }
 
+class Processor(object):
+    """
+    Generic helper class used via dask.array.store to apply each chunk
+    of an image to a given function
+    """
+    def __init__(self, image, fn, **kwargs):
+        self.image = image 
+        self.fn = fn
+        self.accum = {}
+        self.offset = kwargs.get("offset", 0)
+        self.kwargs = kwargs
+
+    def apply_offset(self, loc):
+        start = loc.start + self.offset
+        stop  = loc.stop + self.offset
+        return start, stop
+        
+    def __setitem__(self, loc, chunk):
+        ystart, ystop = self.apply_offset(loc[1])
+        xstart, xstop = self.apply_offset(loc[2])
+        aoi = self.image[:, ystart:ystop, xstart:xstop]
+        self.accum[str(loc)] = self.fn(chunk, aoi=aoi, window=loc, **self.kwargs)
+
 def reproject_params(proj):
     _params = {}
     if proj is not None:

@@ -4,15 +4,15 @@ import types
 import os
 import random
 from functools import wraps, partial
+from itertools import product as cartesian_product
 from collections import Container
 from six import add_metaclass
 from multiprocessing.pool import ThreadPool
 import warnings
 import math
 
-
 from gbdxtools.ipe.io import to_geotiff
-from gbdxtools.ipe.util import RatPolyTransform, AffineTransform, pad_safe_positive, pad_safe_negative, IPE_TO_DTYPE
+from gbdxtools.ipe.util import RatPolyTransform, AffineTransform, pad_safe_positive, pad_safe_negative, IPE_TO_DTYPE, Processor
 
 from shapely import ops, wkt
 from shapely.geometry import box, shape, mapping
@@ -30,6 +30,7 @@ import dask
 from dask import sharedict, optimize
 from dask.delayed import delayed
 import dask.array as da
+from dask.array import store, ma
 from dask.base import is_dask_collection
 import numpy as np
 
@@ -186,6 +187,28 @@ class DaskImage(da.Array):
             for i in xrange(count):
                 yield self.randwindow(window_shape)
 
+    def process(self, fn, **kwargs):
+        """
+        Process an image by passing each chunk of data through a given function.
+        Each chunk will be fetched in parallel and passed to the function, 
+        the result of the funtion is accumulated and returned as a dict of tuples 
+        where the keys are chunk slices and the values are the result of the input function.
+
+        Passed to the input function are each image chunk (as a numpy array), 
+        the dask image for each chunk (a dask passed as the `aoi` kwarg), 
+        the location slice of each chunk and any kwargs passed into this `process` method. 
+
+        Params:
+            fn (function): A function to be called with each chunk, returns anything, accepts a `chunk` and `**kwargs`
+
+        Returns:
+            dict: a dictionary of location slices as keys and the results of `fn` as values
+        """
+        processor = Processor(self, fn, **kwargs)
+        store(self, processor)
+        return processor.accum
+        
+
 
 @add_metaclass(abc.ABCMeta)
 class GeoImage(Container):
@@ -262,6 +285,51 @@ class GeoImage(Container):
         if 'proj' not in kwargs:
             kwargs['proj'] = self.proj
         return to_geotiff(self, **kwargs)
+
+    def spatial_mask(self, geom, **kwargs):
+        """
+        Applies a spatial mask to the image.
+        Finds all intersecting tiles and returns a new image where only the tiles 
+        intersecting the given geometry/shape are fetched. Non-intersecting tiles become zero arrays.
+
+        kwargs:
+            geom (geojson or shape): required. Either a geojson feature dict or a shapely shape to intersect against
+
+        Returns:
+            image (dask): a new image with same shape but a new dask graph  
+        """
+        g = shape(geom)
+        chunks = self.chunks
+        
+        daskmeta = {
+            "dask": {},
+            "chunks": chunks, 
+            "dtype": self.dtype.name,
+            "name": "mask-{}".format(self.name),
+            "shape": self.shape
+        }
+
+        def zero_tile(shape):
+            return np.zeros(shape).astype(self.dtype)
+
+        def fetch_tile(tile):
+            return tile
+
+        ys = [(i, sum(chunks[1][:i]), sum(chunks[1][:i]) + y) for i, y in enumerate(chunks[1])]
+        xs = [(i, sum(chunks[2][:i]), sum(chunks[2][:i]) + x) for i, x in enumerate(chunks[2])]
+        for y, x in cartesian_product(ys, xs):
+            i, j = y[0], x[0]
+            tile = self[:, y[1]:y[2], x[1]:x[2]]
+            if shape(tile).intersects(g):
+                daskmeta["dask"][(daskmeta["name"], 0, i, j)] = (fetch_tile, tile)
+            else:
+                daskmeta["dask"][(daskmeta["name"], 0, i, j)] = (zero_tile, tile.shape)
+
+        result = GeoDaskWrapper(daskmeta, self)
+        result.__geo_interface__ = self.__geo_interface__
+        result.__geo_transform__ = self.__geo_transform__
+        return GeoImage.__getitem__(result, box(*self.bounds))
+
 
     def warp(self, dem=None, proj="EPSG:4326", **kwargs):
         """
