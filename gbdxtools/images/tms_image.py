@@ -20,6 +20,7 @@ from affine import Affine
 from scipy.misc import imread
 
 import mercantile
+from base64 import b64encode
 
 from gbdxtools.images.meta import GeoDaskImage, DaskMeta
 from gbdxtools.rda.util import AffineTransform
@@ -45,6 +46,8 @@ def load_url(url, shape=(8, 256, 256)):
     _curl = _curl_pool[thread_id]
     _curl.setopt(_curl.URL, url)
     _curl.setopt(pycurl.NOSIGNAL, 1)
+    userAndPass = b64encode(b"flame:mosaic").decode("ascii")
+    _curl.setopt(pycurl.HTTPHEADER, ['Authorization: Basic {}'.format(userAndPass)])
     _, ext = os.path.splitext(urlparse(url).path)
     with NamedTemporaryFile(prefix="gbdxtools", suffix="."+ext, delete=False) as temp: # TODO: apply correct file extension
         _curl.setopt(_curl.WRITEDATA, temp.file)
@@ -79,10 +82,12 @@ def raise_aoi_required():
 class TmsMeta(object):
     def __init__(self, access_token=os.environ.get("MAPBOX_API_KEY"),
                  url="https://api.mapbox.com/v4/digitalglobe.nal0g75k/{z}/{x}/{y}.png",
-                 zoom=22, bounds=None):
+                 zoom=22, bounds=None, **kwargs):
+        self.collect = kwargs.get('collect', None)
         self.zoom_level = zoom
         self._token = access_token
         self._name = "image-{}".format(str(uuid.uuid4()))
+        self._url = url
         self._url_template = url + "?access_token={token}"
 
         _first_tile = mercantile.Tile(z=self.zoom_level, x=0, y=0)
@@ -109,7 +114,7 @@ class TmsMeta(object):
         # TODO: set bounds via shapely or bbox, validation
         self._bounds = obj
         if obj is not None:
-            self._urls, self._shape = self._collect_urls(self.bounds)
+            self._urls, self._shape = self.collect_urls(self.bounds)
 
     @property
     def name(self):
@@ -120,7 +125,7 @@ class TmsMeta(object):
         if self._bounds is None:
             return {self._name: (raise_aoi_required, )}
         else:
-            urls, shape = self._collect_urls(self.bounds)
+            urls, shape = self.collect_urls(self.bounds)
             return {(self._name, 0, y, x): (load_url, url, self._chunks) for (y, x), url in urls.items()}
 
     @property
@@ -147,11 +152,14 @@ class TmsMeta(object):
         tfm = Affine.translation(west, north) * Affine.scale((east - west) / self.shape[2], (south - north) / self.shape[1])
         return AffineTransform(tfm, "EPSG:3857")
 
-    def _collect_urls(self, bounds):
-        minx, miny, maxx, maxy = self._tile_coords(bounds)
-        urls = {(y - miny, x - minx): self._url_template.format(z=self.zoom_level, x=x, y=y, token=self._token)
-                for y in xrange(miny, maxy + 1) for x in xrange(minx, maxx + 1)}
-        return urls, (3, self._tile_size * (maxy - miny), self._tile_size * (maxx - minx))
+    def collect_urls(self, bounds):
+        if self.collect is not None:
+            return self.collect(self, bounds)
+        else:
+            minx, miny, maxx, maxy = self._tile_coords(bounds)
+            urls = {(y - miny, x - minx): self._url_template.format(z=self.zoom_level, x=x, y=y, token=self._token)
+                    for y in xrange(miny, maxy + 1) for x in xrange(minx, maxx + 1)}
+            return urls, (3, self._tile_size * (maxy - miny), self._tile_size * (maxx - minx))
 
     def _expand_bounds(self, bounds):
         if bounds is None:
@@ -185,11 +193,14 @@ class TmsImage(GeoDaskImage):
     def __new__(cls, access_token=os.environ.get("MAPBOX_API_KEY"),
                 url="https://api.mapbox.com/v4/digitalglobe.nal0g75k/{z}/{x}/{y}.png",
                 zoom=22, **kwargs):
-        _tms_meta = TmsMeta(access_token=access_token, url=url, zoom=zoom, bounds=kwargs.get("bounds"))
+        if 'tms_meta' in kwargs:
+            _tms_meta = kwargs['tms_meta']
+        else:
+            _tms_meta = TmsMeta(access_token=access_token, url=url, zoom=zoom, bounds=kwargs.get("bounds"), collect=kwargs.get("collect"))
         gi = mapping(box(*_tms_meta.bounds))
         gt = _tms_meta.__geo_transform__
         self =  super(TmsImage, cls).__new__(cls, _tms_meta, __geo_transform__ = gt, __geo_interface__ = gi)
-        self._base_args = {"access_token": access_token, "url": url, "zoom": zoom}
+        self._base_args = {"access_token": access_token, "url": url, "zoom": zoom, "collect": kwargs.get("collect")}
         self._tms_meta = _tms_meta
         g = self._parse_geoms(**kwargs)
         if g is not None:
