@@ -97,11 +97,12 @@ def preview(self):
         url = self.item['properties']['attributes']['url'].replace('{}', '{bbox-epsg-3857}')
         bbox = shape(self.item['geometry'])
         center = list(bbox.centroid.coords[0])
-        wmsmap(url, bbox=bbox.bounds, center=center, **kwargs)
+        layer = self.item['properties']['attributes']['layer_name']
+        wmsmap(url, layer, bbox=bbox.bounds, center=center, **kwargs)
     return fn
 
 
-def wmsmap(url, bbox=[-180,-90,180,90], center=[0,0], zoom=10, api_key=os.environ.get('MAPBOX_API_KEY', None)):
+def wmsmap(url, layer, bbox=[-180,-90,180,90], center=[0,0], zoom=10, api_key=os.environ.get('MAPBOX_API_KEY', None)):
     """
       Renders a mapbox gl map from a vector service query
     """
@@ -139,7 +140,7 @@ def wmsmap(url, bbox=[-180,-90,180,90], center=[0,0], zoom=10, api_key=os.enviro
             });
             
             var wmsLayer = L.tileLayer.wms('https://viewer.staging.iipfoundations.com/mapserv?', {
-              layers: 'layer_HERE_Milwaukee_HD-1',
+              layers: '$layer',
               format: 'image/png',
               map: '/usr/src/mapfiles/mapfile.map',
               transparent: true,
@@ -153,7 +154,8 @@ def wmsmap(url, bbox=[-180,-90,180,90], center=[0,0], zoom=10, api_key=os.enviro
         "lon": lon,
         "zoom": zoom,
         "mbkey": api_key,
-        "token": token
+        "token": token,
+        "layer": layer
     })
     display(Javascript(js))
 
