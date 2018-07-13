@@ -1,6 +1,8 @@
 import os
+import time
 import uuid
 import threading
+from string import Template
 from collections import defaultdict
 from itertools import chain
 from functools import partial
@@ -15,6 +17,7 @@ try:
 except ImportError:
     from cachetools.func import lru_cache
 
+from base64 import b64encode
 import numpy as np
 from affine import Affine
 from scipy.misc import imread
@@ -89,17 +92,86 @@ def collect_urls(self, bounds):
     return urls, (3, self._tile_size * (maxy - miny), self._tile_size * (maxx - minx))
 
 
+def preview(self):
+    def fn(**kwargs):
+        url = self.item['properties']['attributes']['url'].replace('{}', '{bbox-epsg-3857}')
+        bbox = shape(self.item['geometry'])
+        center = list(bbox.centroid.coords[0])
+        wmsmap(url, bbox=bbox.bounds, center=center, **kwargs)
+    return fn
+
+
+def wmsmap(url, bbox=[-180,-90,180,90], center=[0,0], zoom=10, api_key=os.environ.get('MAPBOX_API_KEY', None)):
+    """
+      Renders a mapbox gl map from a vector service query
+    """
+    try:
+        from IPython.display import Javascript, HTML, display
+    except:
+        print("IPython is required to produce maps.")
+        return
+
+    assert api_key is not None, "No Mapbox API Key found. You can either pass in a token or set the MAPBOX_API_KEY environment variable."
+
+    lat = center[1]
+    lon = center[0]
+    token = b64encode(b"flame:mosaic").decode("ascii")
+
+    map_id = "map_{}".format(str(int(time.time())))
+    display(HTML(Template('''
+       <div id="map"><div id="$map_id"/></div>
+       <link href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.2.0/leaflet.css' rel='stylesheet' />
+       <style>body{margin:0;padding:0;}#map{position:relative;width:100%;height:400px;}#$map_id{position:absolute;top:0;bottom:0;width:100%;height:400px;}div.output_area .rendered_html img {margin:0}.rendered_html :link {text-decoration: none !important}</style>
+    ''').substitute({"map_id": map_id})))
+
+    js = Template("""
+        require.config({
+          paths: {
+              ll: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.2.0/leaflet.css',
+          }
+        });
+
+        require(['ll'], function(ll) {
+            var map = L.map('$map_id', {
+              center: [$lat, $lon],
+              zoom: $zoom,
+              maxZoom:22
+            });
+            
+            var wmsLayer = L.tileLayer.wms('https://viewer.staging.iipfoundations.com/mapserv?', {
+              layers: 'layer_HERE_Milwaukee_HD-1',
+              format: 'image/png',
+              map: '/usr/src/mapfiles/mapfile.map',
+              transparent: true,
+              maxZoom: 22,
+            }).addTo(map);
+        });
+    """).substitute({
+        "map_id": map_id,
+        "url": url,
+        "lat": lat,
+        "lon": lon,
+        "zoom": zoom,
+        "mbkey": api_key,
+        "token": token
+    })
+    display(Javascript(js))
+
+
 class MosaicImage(GeoDaskImage):
     def __new__(self, _id, zoom=22, tms_meta=None, **kwargs):
         try:
             item = self.fetch(_id) 
             url = item['properties']['attributes']['url']
-            return TmsImage(zoom=zoom, 
+            self = TmsImage(zoom=zoom, 
                   collect=collect_urls, 
                   access_token=None, 
                   url=url, 
                   bounds=None, 
                   **kwargs)
+            self.item = item
+            self.preview = preview(self)
+            return self
         except Exception as err:
             print(err)
             print('Could not find mosaic {}'.format(_id))
