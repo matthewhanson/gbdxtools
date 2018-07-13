@@ -127,7 +127,7 @@ def wmsmap(url, bbox=[-180,-90,180,90], center=[0,0], zoom=10, api_key=os.enviro
     js = Template("""
         require.config({
           paths: {
-              ll: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.2.0/leaflet.css',
+              ll: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.2.0/leaflet',
           }
         });
 
